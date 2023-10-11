@@ -1,0 +1,35 @@
+services:
+  main:
+    image: replicated_log_main
+    ports:
+      - 8000:8000
+    networks:
+     - log-network
+    command: ["-f", "8000", "-s", "secondary1:50001", "secondary2:50002", "secondary3:50003"]
+
+  secondary1:
+    image: replicated_log_secondary
+    ports:
+      - 8001:8001
+    networks:
+     - log-network
+    command: ["-f", "8001", "-g", "50001"]
+
+  secondary2:
+    image: replicated_log_secondary
+    ports:
+      - 8002:8002
+    networks:
+     - log-network
+    command: ["-f", "8002", "-g", "50002"]
+  
+  secondary3:
+    image: replicated_log_secondary
+    ports:
+      - 8003:8003
+    networks:
+     - log-network
+    command: ["-f", "8003", "-g", "50003"]
+
+networks:
+  log-network:

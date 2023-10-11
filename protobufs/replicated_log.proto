@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package replicated_log;
+
+message Message{
+    string message = 1;
+}
+
+message MessageACK{
+    bool ACK = 1;
+}
+
+service ReplicatedLog{
+    rpc LogMessage(Message) returns (MessageACK) {}
+}
