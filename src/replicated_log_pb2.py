@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14replicated_log.proto\x12\x0ereplicated_log\"\x1a\n\x07Message\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x19\n\nMessageACK\x12\x0b\n\x03\x41\x43K\x18\x01 \x01(\x08\x32T\n\rReplicatedLog\x12\x43\n\nLogMessage\x12\x17.replicated_log.Message\x1a\x1a.replicated_log.MessageACK\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14replicated_log.proto\x12\x0ereplicated_log\"+\n\x07Message\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0f\n\x07\x63ounter\x18\x02 \x01(\x05\"\x19\n\nMessageACK\x12\x0b\n\x03\x41\x43K\x18\x01 \x01(\x08\x32T\n\rReplicatedLog\x12\x43\n\nLogMessage\x12\x17.replicated_log.Message\x1a\x1a.replicated_log.MessageACK\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -21,9 +21,9 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'replicated_log_pb2', _globa
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _globals['_MESSAGE']._serialized_start=40
-  _globals['_MESSAGE']._serialized_end=66
-  _globals['_MESSAGEACK']._serialized_start=68
-  _globals['_MESSAGEACK']._serialized_end=93
-  _globals['_REPLICATEDLOG']._serialized_start=95
-  _globals['_REPLICATEDLOG']._serialized_end=179
+  _globals['_MESSAGE']._serialized_end=83
+  _globals['_MESSAGEACK']._serialized_start=85
+  _globals['_MESSAGEACK']._serialized_end=110
+  _globals['_REPLICATEDLOG']._serialized_start=112
+  _globals['_REPLICATEDLOG']._serialized_end=196
 # @@protoc_insertion_point(module_scope)

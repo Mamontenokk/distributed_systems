@@ -4,6 +4,7 @@ package replicated_log;
 
 message Message{
     string message = 1;
+    int32 counter = 2;
 }
 
 message MessageACK{

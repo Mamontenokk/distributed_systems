@@ -5,10 +5,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Message(_message.Message):
-    __slots__ = ["message"]
+    __slots__ = ["message", "counter"]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    COUNTER_FIELD_NUMBER: _ClassVar[int]
     message: str
-    def __init__(self, message: _Optional[str] = ...) -> None: ...
+    counter: int
+    def __init__(self, message: _Optional[str] = ..., counter: _Optional[int] = ...) -> None: ...
 
 class MessageACK(_message.Message):
     __slots__ = ["ACK"]
