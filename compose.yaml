@@ -5,7 +5,7 @@ services:
       - 8000:8000
     networks:
      - log-network
-    command: ["-f", "8000", "-s", "secondary1:50001", "secondary2:50002", "secondary3:50003"]
+    command: ["-f", "8000", "-s", "secondary1:50001", "secondary2:50002"]
 
   secondary1:
     image: replicated_log_secondary
@@ -22,14 +22,7 @@ services:
     networks:
      - log-network
     command: ["-f", "8002", "-g", "50002"]
-  
-  secondary3:
-    image: replicated_log_secondary
-    ports:
-      - 8003:8003
-    networks:
-     - log-network
-    command: ["-f", "8003", "-g", "50003"]
+
 
 networks:
   log-network:

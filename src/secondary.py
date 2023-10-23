@@ -31,12 +31,19 @@ logging.basicConfig(
 
 class Logger(ReplicatedLogServicer):
     def LogMessage(self, request, context):
-        sleep_duration = randint(1, 5)
-        logging.info(f"going to sleep for {sleep_duration} seconds")
-        time.sleep(sleep_duration)
-        logging.info(f"Adding {request.message} to logs")
-        LOGS.append(request.message)
-        return MessageACK(ACK=True)
+        append_data = {'message': request.message, 'counter': request.counter}
+        
+        if append_data in LOGS:
+            logging.info('Log already present')
+            return MessageACK(ACK=True) #True because message is already replicated => task is done
+        
+        else:
+            sleep_duration = randint(1, 10)
+            logging.info(f"going to sleep for {sleep_duration} seconds")
+            time.sleep(sleep_duration)
+            logging.info(f"Adding {request.message} to logs")
+            LOGS.append(append_data)
+            return MessageACK(ACK=True)
     
 
 def start_grpc_server(port):
@@ -56,7 +63,7 @@ def start_grpc_server(port):
 
 @app.get("/logs")
 def get_logs():
-    return LOGS
+    return [elem['message'] for elem in sorted(LOGS, key=lambda v: v['counter'])]
 
 
 def start_fastapi_server(port):
