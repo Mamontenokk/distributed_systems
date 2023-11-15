@@ -63,7 +63,13 @@ def start_grpc_server(port):
 
 @app.get("/logs")
 def get_logs():
-    return [elem['message'] for elem in sorted(LOGS, key=lambda v: v['counter'])]
+    response = []
+
+    for log, i in zip(sorted(LOGS, key=lambda v: v['counter']), range(1,len(LOGS)+1)):
+        if log['counter'] == i:
+            response.append(log['message'])
+
+    return response
 
 
 def start_fastapi_server(port):
