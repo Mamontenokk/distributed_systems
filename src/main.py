@@ -5,6 +5,7 @@ import grpc
 from replicated_log_pb2_grpc import ReplicatedLogStub
 from replicated_log_pb2 import Message
 from concurrent.futures import ThreadPoolExecutor
+from threading import Thread, Condition
 import argparse
 
 app = FastAPI()
@@ -27,7 +28,14 @@ def replicate(secondary, message, counter):
 
 @app.post("/add")
 def add_log(message: str, write_concern: int):
+
     global APPEND_COUNTER
+
+    def replicate_with_message(condition, secondary, added_logs):
+        replicate(secondary, message, APPEND_COUNTER)
+        added_logs.append(secondary)
+        with condition:
+            condition.notify()
 
     if write_concern > (len(SECONDARIES) + 1):
         raise HTTPException(status_code=400, detail="write_concern param can't be greater than number of secondaries + 1")
@@ -35,22 +43,18 @@ def add_log(message: str, write_concern: int):
     APPEND_COUNTER += 1
     LOGS.append({'message':message, 'counter': APPEND_COUNTER})
 
-    def replicate_with_message(secondary):
-        replicate(secondary, message, APPEND_COUNTER)
+    added_logs = []
 
-
-    executor = ThreadPoolExecutor(max_workers=5)
-    futures = []
+    condition = Condition()
 
     for secondary in SECONDARIES:
-        futures.append(executor.submit(replicate_with_message,secondary))
+        worker = Thread(target=replicate_with_message, args=(condition, secondary, added_logs))
+        worker.start()
 
-    while True:
-        received_acks = sum([1 for future in futures if future.done()]) + 1 # +1 because log already present in main log
-        if received_acks >= write_concern:
-            return f'Message replicated to {received_acks} secondaries'
+    with condition:
+        condition.wait_for(lambda: (len(added_logs)+1) >= write_concern)
 
-    
+    return f'Message replicated to {len(added_logs)} secondaries'
 
 
 @app.get("/logs")
