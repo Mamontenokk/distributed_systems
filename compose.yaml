@@ -13,7 +13,7 @@ services:
       - 8001:8001
     networks:
      - log-network
-    command: ["-f", "8001", "-g", "50001"]
+    command: ["-f", "8001", "-g", "50001", "-m", "main:8000"]
 
   secondary2:
     image: replicated_log_secondary
@@ -21,7 +21,7 @@ services:
       - 8002:8002
     networks:
      - log-network
-    command: ["-f", "8002", "-g", "50002"]
+    command: ["-f", "8002", "-g", "50002", "-m", "main:8000"]
 
 
 networks:

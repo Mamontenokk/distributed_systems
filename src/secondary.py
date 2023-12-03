@@ -6,6 +6,7 @@ from replicated_log_pb2_grpc import add_ReplicatedLogServicer_to_server, Replica
 from replicated_log_pb2 import MessageACK
 import threading
 import argparse
+import requests
 
 #for testing purposes only
 import time
@@ -51,6 +52,7 @@ def start_grpc_server(port):
     add_ReplicatedLogServicer_to_server(Logger(), server)
     server.add_insecure_port("[::]:" + port)
     server.start()
+
     logging.info("Server started, listening on " + port)
 
     while not TERMINATE_FLAG:
@@ -80,10 +82,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-g", "--grpc-port", type=str, dest="grpc-port", required=True)
     parser.add_argument("-f", "--fastapi-port", type=int, dest="fastapi-port", required=True)
+    parser.add_argument("-m", "--main-server", type=str, dest="main-server", required=True)
     args = vars(parser.parse_args())
 
     grpc_thread = threading.Thread(target=start_grpc_server, args=(args["grpc-port"],))
     grpc_thread.start()
+
+    try:
+        requests.get(f"http://{args['main-server']}/secondary_startup?port={args['grpc-port']}")
+    except:
+        logging.info('Error while trying to send request to the main server')
 
     start_fastapi_server(args['fastapi-port'])
 

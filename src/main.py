@@ -1,17 +1,21 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 import uvicorn
 import grpc
 
 from replicated_log_pb2_grpc import ReplicatedLogStub
 from replicated_log_pb2 import Message
-from concurrent.futures import ThreadPoolExecutor
-from threading import Thread, Condition
+import threading
 import argparse
+
+
+import time
 
 app = FastAPI()
 LOGS = []
 SECONDARIES = []
 APPEND_COUNTER = 0
+IS_BLOCKED = 0
+IS_TIMEOUT = 0
 
 
 def replicate(secondary, message, counter):
@@ -19,7 +23,11 @@ def replicate(secondary, message, counter):
     client = ReplicatedLogStub(channel)
 
     request = Message(message=message, counter=counter)
-    response = client.LogMessage(request)
+    
+    try:
+        response = client.LogMessage(request)
+    except:
+        return False
 
     print(f"{secondary} sent {response.ACK} as response")
 
@@ -28,31 +36,55 @@ def replicate(secondary, message, counter):
 
 @app.post("/add")
 def add_log(message: str, write_concern: int):
-
+    
+    global IS_TIMEOUT
     global APPEND_COUNTER
+    global IS_BLOCKED
 
     def replicate_with_message(condition, secondary, added_logs):
-        replicate(secondary, message, APPEND_COUNTER)
+        global IS_TIMEOUT
+        delay = 1
+        while not replicate(secondary, message, APPEND_COUNTER):
+            print(f'Going to sleep for {delay} seconds before another retry')
+            time.sleep(delay)
+            delay *= 2
+
+            if delay == 2:
+                IS_TIMEOUT = 1
+                with condition:
+                    condition.notify()
+
         added_logs.append(secondary)
         with condition:
             condition.notify()
+    
+    if IS_BLOCKED == 1:
+        raise HTTPException(status_code=400, detail="Server is blocked")
 
     if write_concern > (len(SECONDARIES) + 1):
         raise HTTPException(status_code=400, detail="write_concern param can't be greater than number of secondaries + 1")
     
+    IS_TIMEOUT = 0
+    IS_BLOCKED = 1
     APPEND_COUNTER += 1
     LOGS.append({'message':message, 'counter': APPEND_COUNTER})
 
     added_logs = []
 
-    condition = Condition()
+    condition = threading.Condition()
 
     for secondary in SECONDARIES:
-        worker = Thread(target=replicate_with_message, args=(condition, secondary, added_logs))
+        worker = threading.Thread(target=replicate_with_message, args=(condition, secondary, added_logs))
         worker.start()
 
+
     with condition:
-        condition.wait_for(lambda: (len(added_logs)+1) >= write_concern)
+        condition.wait_for(lambda: (len(added_logs)+1) >= write_concern or IS_TIMEOUT == 1)
+    
+    IS_BLOCKED = 0
+
+    if (len(added_logs)+1) < write_concern and IS_TIMEOUT == 1:
+        raise HTTPException(status_code=400, detail="Couldn't write log to required number of secondaries")
 
     return f'Message replicated to {len(added_logs)} secondaries'
 
@@ -60,6 +92,14 @@ def add_log(message: str, write_concern: int):
 @app.get("/logs")
 def get_logs():
     return [elem['message'] for elem in sorted(LOGS, key=lambda v: v['counter'])]
+
+
+@app.get("/secondary_startup")
+def secondary_startup(port, request: Request):
+    print(request.client)
+    for log in LOGS:
+        replicate(f'{request.client.host}:{port}', log['message'], log['counter'])
+
 
 
 def start_fastapi_server(port):
