@@ -14,7 +14,6 @@ app = FastAPI()
 LOGS = []
 SECONDARIES = []
 APPEND_COUNTER = 0
-IS_BLOCKED = 0
 IS_TIMEOUT = 0
 
 
@@ -39,7 +38,6 @@ def add_log(message: str, write_concern: int):
     
     global IS_TIMEOUT
     global APPEND_COUNTER
-    global IS_BLOCKED
 
     def replicate_with_message(condition, secondary, added_logs):
         global IS_TIMEOUT
@@ -57,15 +55,12 @@ def add_log(message: str, write_concern: int):
         added_logs.append(secondary)
         with condition:
             condition.notify()
-    
-    if IS_BLOCKED == 1:
-        raise HTTPException(status_code=400, detail="Server is blocked")
+
 
     if write_concern > (len(SECONDARIES) + 1):
         raise HTTPException(status_code=400, detail="write_concern param can't be greater than number of secondaries + 1")
     
     IS_TIMEOUT = 0
-    IS_BLOCKED = 1
     APPEND_COUNTER += 1
     LOGS.append({'message':message, 'counter': APPEND_COUNTER})
 
@@ -77,11 +72,8 @@ def add_log(message: str, write_concern: int):
         worker = threading.Thread(target=replicate_with_message, args=(condition, secondary, added_logs))
         worker.start()
 
-
     with condition:
         condition.wait_for(lambda: (len(added_logs)+1) >= write_concern or IS_TIMEOUT == 1)
-    
-    IS_BLOCKED = 0
 
     if (len(added_logs)+1) < write_concern and IS_TIMEOUT == 1:
         raise HTTPException(status_code=400, detail="Couldn't write log to required number of secondaries")
